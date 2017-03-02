@@ -264,7 +264,7 @@ echo '<div id="formerror" class="alert alert-danger" '.$style.'>'.$msg.'</div>
 </fieldset>
 </form>
     
-    <p style="margin-bottom:-20px; text-align:center; font-size:80%">Developed By <a href="http://www.parsvt.com" target="_blank">ParsVT Group</a>  |  <a href="http://forum.parsvt.com" target="_blank">Forum</a></p>
+    <p style="margin-bottom:-20px; text-align:center; font-size:80%">Developed By Hamid Rabiei  |  <a href="http://www.awebict.net" target="_blank">AWEBICT Group</a></p>
     </div>
         
       </div>
