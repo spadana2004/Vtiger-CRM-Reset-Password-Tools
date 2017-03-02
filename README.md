@@ -5,4 +5,4 @@ This Tools Help you to change crm users password without login into CRM
 
 2- Copy password.php in vtiger root directory.
 
-3- Run Go to http://VTIGER_URL/password.php and change password
+3- Go to http://VTIGER_URL/password.php and change password
