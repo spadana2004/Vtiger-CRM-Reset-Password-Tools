@@ -2,8 +2,8 @@
 #Error Reporting
 error_reporting(0);
 #Login Details
-$Username = 'admin';
-$Password = 'admin';
+$Username = ''; //admin
+$Password = ''; //admin
 
 
 
@@ -13,6 +13,9 @@ if (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
     if ($Username == $_SERVER['PHP_AUTH_USER'] && $Password == $_SERVER['PHP_AUTH_PW']) {
         $LoginSuccessful = true;
     }
+}
+if (empty($Username) || empty($Password)){
+   $LoginSuccessful = true;
 }
 // Login passed successful?
 if (!$LoginSuccessful) {
