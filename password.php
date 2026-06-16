@@ -5,8 +5,6 @@ error_reporting(0);
 $Username = ''; //admin
 $Password = ''; //admin
 
-
-
 $LoginSuccessful = false;
 // Check username and password:
 if (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
@@ -23,80 +21,68 @@ if (!$LoginSuccessful) {
     header('HTTP/1.0 401 Unauthorized');
     die("Login failed!\n");
 } else {
-    
-    
     // Turn on debugging level 
     $Vtiger_Utils_Log = true;
+    if (file_exists('vendor/autoload.php')) {
+        include_once 'config.php';
+        require_once 'vendor/autoload.php';
+    } else {
+        require_once 'config.php';
+    }
+    if (file_exists('config_override.php')) {
+        include_once 'config_override.php';
+    }
     include_once('vtlib/Vtiger/Menu.php');
     include_once('vtlib/Vtiger/Module.php');
-
-    function encrypt_password($username, $user_password, $crypt_type = '')
-    {
-        $salt = substr($username, 0, 2);
-        if ($crypt_type == '') {
-            $crypt_type = 'MD5';
-        }
-        if ($crypt_type == 'MD5') {
-            $salt = '$1$' . $salt . '$';
-        } elseif ($crypt_type == 'BLOWFISH') {
-            $salt = '$2$' . $salt . '$';
-        } elseif ($crypt_type == 'PHP5.3MD5') {
-            $salt = '$1$' . str_pad($salt, 9, '0');
-        }
-        $encrypted_password = crypt($user_password, $salt);
-        return $encrypted_password;
-    }    
-    
-    $adb = PearDatabase::getInstance();
-    
+    include_once 'include/utils/VtlibUtils.php';
+    include_once 'include/utils/CommonUtils.php';
+    include_once 'includes/runtime/BaseModel.php';
+    include_once 'includes/runtime/Viewer.php';
+    include_once 'includes/http/Request.php';
+    include_once 'include/Webservices/Custom/ChangePassword.php';
+    include_once 'include/Webservices/Utils.php';
+    include_once 'modules/Users/CreateUserPrivilegeFile.php';
+    include_once 'includes/runtime/EntryPoint.php';
+    global $root_directory, $adb;
+    global $current_user;
+    $current_user = Users::getActiveAdminUser();
     if (isset($_POST['pwd2']) && isset($_POST['pwd1']) && isset($_POST['username']) && $_POST['pwd2'] == $_POST['pwd1'] && !empty($_POST['pwd1'])) {
         $error  = false;
         $status = "sucess";
-        $sql    = 'SELECT user_name, crypt_type FROM vtiger_users WHERE status = "Active" and id = "' . $_POST['username'] . '" limit 1';
-        $result = $adb->query($sql);
-        if ($adb->num_rows($result) > 0) {
-            while ($row = $adb->fetchByAssoc($result)) {
-                $crypt_type = $row['crypt_type'];
-                $user_name  = $row['user_name'];
+        $userId = getUserId_Ol($_POST['username']);
+        if ($userId && is_numeric($userId) && $userId > 0) {
+            $user = Users::getActiveAdminUser();
+            $wsUserId = vtws_getWebserviceEntityId('Users', $userId);
+            try {
+                vtws_changePassword($wsUserId, '', $_POST['pwd1'], $_POST['pwd2'], $user);
+            } catch (Exception $e) {
+                $error = "error setting new password: [" . $adb->database->ErrorNo() . "] " . $adb->database->ErrorMsg();
+                $status = "error";
             }
-            $userid            = $_POST['username'];
-            $encryptedPassword = encrypt_password($user_name, $_POST['pwd1'], $crypt_type);
-            $query             = "UPDATE vtiger_users SET user_password=?, confirm_password=? where id=?";
-            $adb->pquery($query, array(
-                $encryptedPassword,
-                $encryptedPassword,
-                $userid
-            ));
-            if ($adb->hasFailedTransaction()) {
-                if ($dieOnError) {
-                    $error  = "error setting new password: [" . $adb->database->ErrorNo() . "] " . $adb->database->ErrorMsg();
-                    $status = "error";
-                }
-            }
+
             if (isset($_POST['recreate']) && $_POST['recreate'] == '1') {
                 require_once('modules/Users/CreateUserPrivilegeFile.php');
-                createUserPrivilegesfile($userid);
-                createUserSharingPrivilegesfile($userid);
-                require_once($root_directory . 'user_privileges/user_privileges_' . $userid . '.php');
-                require_once($root_directory . 'user_privileges/sharing_privileges_' . $userid . '.php');
+                createUserPrivilegesfile($userId);
+                createUserSharingPrivilegesfile($userId);
+                require_once($root_directory . 'user_privileges/user_privileges_' . $userId . '.php');
+                require_once($root_directory . 'user_privileges/sharing_privileges_' . $userId . '.php');
             }
         } else {
-            $error  = "Invalid User Selected!";
+            $error = "Invalid User Selected!";
             $status = "error";
         }
         header("Location: " . $_SERVER['PHP_SELF'] . ($status == "error" ? "?status=error&msg=" . $error : "?status=success"));
         exit;
     }
-    
 
-    
-    
+    $user_model = Users_Record_Model::getCurrentUserModel();
+    $list_users = $user_model->getAccessibleUsers();
+
     $sql       = 'SELECT id, user_name, first_name, last_name FROM vtiger_users WHERE status = "Active"';
     $result    = $adb->query($sql);
     $listusers = '<select id="selectbasic" name="username" class="form-control">';
-    while ($row = $adb->fetchByAssoc($result)) {
-        $listusers .= '<option value="' . $row['id'] . '">' . $row['first_name'] . ' ' . $row['last_name'] . ' - (' . $row['user_name'] . ')</option>';
-        
+    foreach ($list_users as $owner_id => $owner_name) {
+        $listusers .= '<option value="' . $owner_id . '">' . $owner_name . ' - (' . getUserName($owner_id) . ')</option>';
     }
     $listusers .= '</select>';
     
