@@ -46,11 +46,12 @@ if (!$LoginSuccessful) {
     global $root_directory, $adb;
     global $current_user;
     $current_user = Users::getActiveAdminUser();
-    if (isset($_POST['pwd2']) && isset($_POST['pwd1']) && isset($_POST['username']) && $_POST['pwd2'] == $_POST['pwd1'] && !empty($_POST['pwd1'])) {
+    if (isset($_POST['pwd2']) && isset($_POST['pwd1']) && isset($_POST['userid']) && $_POST['pwd2'] == $_POST['pwd1'] && !empty($_POST['pwd1'])) {
         $error  = false;
         $status = "sucess";
-        $userId = getUserId_Ol($_POST['username']);
-        if ($userId && is_numeric($userId) && $userId > 0) {
+        $userId = $_POST['userid'];
+        $username = getUserName($_POST['userid']);
+        if ($userId && is_numeric($userId) && $userId > 0 && !empty($username)) {
             $user = Users::getActiveAdminUser();
             $wsUserId = vtws_getWebserviceEntityId('Users', $userId);
             try {
@@ -80,7 +81,7 @@ if (!$LoginSuccessful) {
 
     $sql       = 'SELECT id, user_name, first_name, last_name FROM vtiger_users WHERE status = "Active"';
     $result    = $adb->query($sql);
-    $listusers = '<select id="selectbasic" name="username" class="form-control">';
+    $listusers = '<select id="selectbasic" name="userid" class="form-control">';
     foreach ($list_users as $owner_id => $owner_name) {
         $listusers .= '<option value="' . $owner_id . '">' . $owner_name . ' - (' . getUserName($owner_id) . ')</option>';
     }
